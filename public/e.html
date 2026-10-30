@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b2230">
+<title>Carnet d'entretien — FroidPass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="config.js"></script>
+<style>
+.phone{max-width:440px;margin:18px auto;background:#fff;border-radius:24px;border:1px solid var(--line);overflow:hidden;box-shadow:0 18px 44px rgba(11,34,48,.12)}
+.ph{background:var(--ink);color:#fff;padding:22px}.pb{padding:20px}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="phone" id="c"><div class="pb"><p class="empty">Chargement du carnet…</p></div></div></div>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+const CFG = window.FROIDPASS_CONFIG;
+const TYPES = { split:["Split mural / console","❄️",60,90], cassette:["Cassette / gainable","🌀",60,90], groupe:["Groupe extérieur","🔆",60,90], chambre:["Chambre froide","🧊",30,30], vitrine:["Armoire / vitrine réfrigérée","🥶",60,90] };
+const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+const fr = s => s ? String(s).slice(0,10).split("-").reverse().join("/") : "—";
+const _n = new Date(), TODAY = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate());
+const el = document.getElementById("c");
+const code = new URLSearchParams(location.search).get("c");
+try {
+  if (!code) throw new Error("QR invalide");
+  const sb = createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  const { data, error } = await sb.rpc("get_carnet", { p_code: code });
+  if (error) throw error;
+  if (!data) throw new Error("Équipement introuvable");
+  const e = data.equipement, t = TYPES[e.type], tech = data.technicien, ints = data.interventions;
+  const lastP = ints.find(x => x.type === "preventif");
+  const f = e.environnement === "cotier" ? t[2] : t[3];
+  const next = new Date(Date.parse(lastP ? lastP.date : e.date_pose) + f*864e5).toISOString().slice(0,10);
+  const d = Math.round((Date.parse(next) - TODAY)/864e5);
+  const st = d < 0 ? ["p-bad", `Entretien en retard de ${-d} j`] : d <= 14 ? ["p-warn", `Entretien dans ${d} j`] : ["p-ok", "À jour"];
+  const wa = String(tech.whatsapp || "").replace(/\D/g, "");
+  document.title = `${e.emplacement} — Carnet d'entretien`;
+  el.innerHTML = `<div class="ph"><div style="font-size:13px;opacity:.7">Carnet d'entretien · ${esc(data.client)}</div>
+    <div class="disp" style="font-size:25px;font-weight:800;margin:4px 0 10px">${t[1]} ${esc(e.emplacement)}</div>
+    <span class="pill ${st[0]}" style="background:#fff">${st[1]}</span></div>
+  <div class="pb"><p class="m">${t[0]} · ${esc(e.marque)} ${esc(e.puissance)} · ${esc(e.fluide)}</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0">
+      <div class="kpi" style="padding:12px"><span>Dernier entretien</span><b class="mono" style="font-size:17px">${fr(lastP && lastP.date)}</b></div>
+      <div class="kpi" style="padding:12px"><span>Prochain entretien</span><b class="mono" style="font-size:17px">${fr(next)}</b></div></div>
+    <h3 style="font-size:17px;margin:4px 0 10px">Historique</h3>
+    <div class="hist">${ints.map(x => `<div class="it"><b class="mono" style="font-size:13px">${fr(x.date)}</b> · ${x.type === "preventif" ? "Préventif" : "Curatif"}<div class="m">${esc(x.observations)}</div></div>`).join("") || '<p class="empty">Aucune intervention enregistrée.</p>'}</div>
+    <div style="border-top:1px solid var(--line);padding-top:14px;margin-top:6px">
+      <div class="m">Votre technicien</div><b>${esc(tech.entreprise || tech.nom)}</b>${tech.entreprise ? `<div class="m">${esc(tech.nom)}</div>` : ""}
+      ${wa ? `<br><a class="btn btn-hot btn-sm" style="margin-top:10px" href="https://wa.me/${wa}?text=${encodeURIComponent("Bonjour, je vous contacte au sujet de l'équipement « " + e.emplacement + " » (" + data.client + ").")}">Contacter sur WhatsApp</a>` : ""}
+    </div>
+    <p class="m" style="text-align:center;margin-top:18px">Propulsé par <a href="/">FroidPass</a></p></div>`;
+} catch (err) {
+  el.innerHTML = `<div class="pb"><h3>Carnet indisponible</h3><p class="m">${esc(err.message)}</p></div>`;
+}
+</script>
+</body>
+</html>

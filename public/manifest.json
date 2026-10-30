@@ -1,0 +1,10 @@
+{
+  "name": "FroidPass",
+  "short_name": "FroidPass",
+  "start_url": "/app.html",
+  "display": "standalone",
+  "background_color": "#f7fbfb",
+  "theme_color": "#0b2230",
+  "lang": "fr",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

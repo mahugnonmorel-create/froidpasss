@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b2230">
+<title>FroidPass — Espace technicien</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+<nav class="top noprint"><div class="wrap">
+  <a class="logo" href="#tableau"><i>✳</i>FroidPass</a>
+  <div class="menu" id="menu" hidden>
+    <a href="#tableau" data-v="tableau">Tableau</a>
+    <a href="#parc" data-v="parc">Parc</a>
+    <a href="#clients" data-v="clients">Clients</a>
+    <a href="#abonnement" data-v="abonnement">Abonnement</a>
+    <a href="#profil" data-v="profil">Profil</a>
+  </div>
+</div></nav>
+<main><div class="wrap" id="view"><p class="empty">Chargement…</p></div></main>
+<div id="modal"></div>
+<div class="toast" id="toast"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

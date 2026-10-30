@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FroidPass — Le carnet de santé de vos équipements de froid</title>
+<meta name="description" content="Carnet d'entretien QR pour climatiseurs et chambres froides. Relances WhatsApp, certificat d'entretien, paiement Mobile Money.">
+<link rel="icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --ink:#0b2230; --ink2:#3d5866; --mute:#7a929e;
+  --ice:#e8f4f6; --ice2:#d3eaee; --paper:#f7fbfb; --line:#cfe2e6;
+  --teal:#0e6e7e; --teal2:#0a5563; --frost:#5fc4d4;
+  --heat:#ff6a3d; --ok:#1f9d6b; --warn:#e3a008; --bad:#d64545;
+  --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:Inter,system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.5;font-size:16px}
+h1,h2,h3,.disp{font-family:"Bricolage Grotesque",sans-serif;letter-spacing:-.02em;line-height:1.08}
+.mono{font-family:"IBM Plex Mono",monospace}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:12px 20px;font-weight:600;cursor:pointer;text-decoration:none;transition:transform .15s,background .15s}
+.btn:hover{transform:translateY(-1px)}
+.btn-hot{background:var(--heat);color:#fff}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn-sm{padding:8px 14px;font-size:14px}
+.view{display:none}.view.on{display:block}
+
+/* NAV */
+nav.top{position:sticky;top:0;z-index:20;background:rgba(247,251,251,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav.top .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-family:"Bricolage Grotesque";font-weight:800;font-size:22px;text-decoration:none}
+.logo i{width:30px;height:30px;border-radius:9px;background:var(--ink);display:grid;place-items:center}
+.navlinks{display:flex;gap:6px;align-items:center}
+.navlinks a{padding:8px 12px;border-radius:999px;text-decoration:none;font-size:15px;color:var(--ink2)}
+.navlinks a.cur{background:var(--ice2);color:var(--ink)}
+@media(max-width:720px){.navlinks .hide-m{display:none}}
+
+/* HERO */
+.hero{position:relative;overflow:hidden;background:var(--ink);color:#eaf7f9}
+.hero::before{content:"";position:absolute;inset:0;background:
+  radial-gradient(600px 300px at 85% 10%,rgba(95,196,212,.25),transparent 70%),
+  radial-gradient(500px 260px at 10% 100%,rgba(255,106,61,.18),transparent 70%)}
+.hero .wrap{position:relative;display:grid;grid-template-columns:1.15fr .85fr;gap:40px;padding-top:72px;padding-bottom:80px;align-items:center}
+@media(max-width:900px){.hero .wrap{grid-template-columns:1fr}}
+.kicker{display:inline-block;font-family:"IBM Plex Mono";font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--frost);border:1px solid rgba(95,196,212,.4);padding:5px 10px;border-radius:999px;margin-bottom:22px}
+.hero h1{font-size:clamp(38px,5.6vw,66px);font-weight:800}
+.hero h1 em{font-style:normal;color:var(--heat)}
+.hero p.lead{font-size:19px;color:#b9d6dc;margin:22px 0 30px;max-width:560px}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap}
+.hero .btn-ghost{color:#eaf7f9;border-color:rgba(234,247,249,.3)}
+.tag{background:#fff;color:var(--ink);border-radius:20px;padding:22px;box-shadow:0 30px 60px rgba(0,0,0,.35);transform:rotate(2deg);max-width:340px;margin-left:auto;border:3px solid var(--frost)}
+.tag .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.tag .hd b{font-family:"Bricolage Grotesque";font-size:20px}
+.tag .qrbox{display:grid;grid-template-columns:110px 1fr;gap:14px;align-items:center}
+.tag .qrbox .q{width:110px;height:110px;background:var(--ice);border-radius:10px;display:grid;place-items:center}
+.tag small{display:block;color:var(--ink2);font-size:13px}
+.tag .row{display:flex;justify-content:space-between;border-top:1px dashed var(--line);padding-top:10px;margin-top:12px;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:4px 10px;border-radius:999px}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.p-ok{background:#e1f5ec;color:var(--ok)}.p-warn{background:#fdf3d9;color:#a77400}.p-bad{background:#fbe4e4;color:var(--bad)}
+
+/* SECTIONS */
+section.s{padding:84px 0}
+.s h2{font-size:clamp(30px,4vw,46px);font-weight:800;max-width:760px}
+.s .sub{color:var(--ink2);font-size:18px;max-width:640px;margin-top:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:40px}
+@media(max-width:860px){.grid3{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:24px}
+.card h3{font-size:22px;margin:10px 0 8px}
+.card p{color:var(--ink2)}
+.num{font-family:"IBM Plex Mono";font-size:13px;color:var(--teal);font-weight:600}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:40px}
+@media(max-width:860px){.split{grid-template-columns:1fr}}
+.pain{border-left:4px solid var(--bad)}.gain{border-left:4px solid var(--ok)}
+.pain li,.gain li{margin:8px 0 8px 18px;color:var(--ink2)}
+.cmp{width:100%;border-collapse:collapse;margin-top:36px;background:#fff;border-radius:var(--r);overflow:hidden;border:1px solid var(--line)}
+.cmp th,.cmp td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--line);font-size:15px;vertical-align:top}
+.cmp th{background:var(--ice);font-weight:600}
+.cmp td:last-child{background:#f1fbf7;font-weight:500}
+.dark{background:var(--ink);color:#eaf7f9}
+.dark .sub{color:#a9c9d0}
+.price{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:40px}
+@media(max-width:960px){.price{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.price{grid-template-columns:1fr}}
+.plan{background:#123446;border:1px solid #1f4a5e;border-radius:var(--r);padding:24px;display:flex;flex-direction:column}
+.plan.hot{background:#fff;color:var(--ink);border:3px solid var(--heat)}
+.plan .amt{font-family:"Bricolage Grotesque";font-size:38px;font-weight:800;margin:10px 0 2px}
+.plan .per{font-size:14px;opacity:.7}
+.plan ul{list-style:none;margin:18px 0;flex:1}
+.plan li{padding:6px 0;border-top:1px solid rgba(127,160,170,.25);font-size:14.5px}
+.waitlist{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-top:30px}
+@media(max-width:860px){.waitlist{grid-template-columns:1fr}}
+.field{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--line);background:#fff}
+.note{font-size:13.5px;color:var(--mute);margin-top:10px}
+footer{padding:30px 0;border-top:1px solid var(--line);color:var(--mute);font-size:14px}
+
+/* APP */
+.app{padding:28px 0 60px}
+.apphead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.apphead h1{font-size:34px;font-weight:800}
+.demo-flag{font-family:"IBM Plex Mono";font-size:12px;background:var(--ice2);padding:4px 10px;border-radius:999px;color:var(--teal2)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+@media(max-width:820px){.kpis{grid-template-columns:1fr 1fr}}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.kpi b{display:block;font-family:"Bricolage Grotesque";font-size:32px;font-weight:800}
+.kpi span{color:var(--ink2);font-size:14px}
+.kpi.alert b{color:var(--bad)}
+.panel{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.panel h3{font-size:20px;margin-bottom:12px}
+.layout{display:grid;grid-template-columns:1.4fr 1fr;gap:18px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+.eq{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:14px 4px;border-top:1px solid var(--line);cursor:pointer}
+.eq:hover{background:var(--paper)}
+.eq .ic{width:42px;height:42px;border-radius:11px;background:var(--ice);display:grid;place-items:center;font-size:20px}
+.eq .t{font-weight:600}
+.eq .m{font-size:13.5px;color:var(--ink2)}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form label{font-size:13px;color:var(--ink2);font-weight:500;display:flex;flex-direction:column;gap:5px}
+.form .full{grid-column:1/-1}
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tabs button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;cursor:pointer;font-size:14px;font-weight:500}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.hist{border-left:2px solid var(--line);margin-left:8px;padding-left:18px}
+.hist .it{position:relative;padding:0 0 18px}
+.hist .it::before{content:"";position:absolute;left:-25px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--teal);border:3px solid #fff;box-shadow:0 0 0 1px var(--teal)}
+.hist .it.cur::before{background:var(--heat);box-shadow:0 0 0 1px var(--heat)}
+.meas{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.meas span{font-family:"IBM Plex Mono";font-size:12.5px;background:var(--ice);padding:3px 8px;border-radius:6px}
+.flag{margin-top:8px;font-size:13.5px;padding:8px 10px;border-radius:8px;background:#fff4ec;color:#9a3b12;border:1px solid #ffd3bf}
+.back{display:inline-flex;gap:6px;align-items:center;color:var(--ink2);text-decoration:none;font-size:14px;margin-bottom:12px;cursor:pointer;background:none;border:0}
+.qrwrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.qrwrap .qr{background:#fff;padding:10px;border-radius:12px;border:1px solid var(--line)}
+.msgbox{background:#e9fbe9;border:1px solid #bfe8c2;border-radius:12px;padding:14px;font-size:14.5px;white-space:pre-wrap;margin:10px 0}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:999px;font-size:14.5px;transition:transform .25s;z-index:99}
+.toast.on{transform:translateX(-50%) translateY(0)}
+.ai{background:linear-gradient(135deg,#eef9fb,#fff);border:1.5px dashed var(--frost);border-radius:12px;padding:14px;margin-bottom:14px}
+
+/* CARNET PUBLIC & CERTIFICAT */
+.phone{max-width:420px;margin:30px auto;background:#fff;border-radius:28px;border:1px solid var(--line);overflow:hidden;box-shadow:0 20px 50px rgba(11,34,48,.12)}
+.phone .ph{background:var(--ink);color:#fff;padding:22px}
+.phone .pb{padding:20px}
+.cert{max-width:800px;margin:30px auto;background:#fff;border:1px solid var(--line);padding:46px;border-radius:6px;box-shadow:0 20px 50px rgba(11,34,48,.1)}
+.cert .ch{display:flex;justify-content:space-between;border-bottom:3px solid var(--ink);padding-bottom:18px;margin-bottom:22px;gap:20px}
+.cert table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+.cert th,.cert td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+.cert th{background:var(--ice)}
+.sig{display:flex;justify-content:space-between;margin-top:40px;gap:20px}
+.sig div{border-top:1px solid var(--ink);padding-top:8px;width:45%;font-size:13px;color:var(--ink2)}
+</style>
+</head>
+<body>
+
+<nav class="top"><div class="wrap">
+  <a class="logo" href="#accueil"><i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5fc4d4" stroke-width="2.4" stroke-linecap="round"><path d="M12 2v20M4 6l16 12M20 6L4 18"/></svg></i>FroidPass</a>
+  <div class="navlinks">
+    <a href="#accueil" data-nav="accueil" class="hide-m">Accueil</a>
+    <a href="#tarifs" data-nav="tarifs" class="hide-m">Tarifs</a>
+    <a href="#app" data-nav="app" class="hide-m">Démo</a>
+    <a href="app.html">Espace technicien</a>
+    <a class="btn btn-hot btn-sm" href="#inscription">Rejoindre</a>
+  </div>
+</div></nav>
+
+<!-- ================= LANDING ================= -->
+<div id="v-landing" class="view on">
+<header class="hero"><div class="wrap">
+  <div>
+    <span class="kicker">Pour frigoristes &amp; climaticiens</span>
+    <h1>Vos clients vous paient à la panne.<br>Faites-les payer <em>à l'année</em>.</h1>
+    <p class="lead">FroidPass colle un carnet de santé QR sur chaque clim et chaque chambre froide. Votre client voit tout ce que vous avez fait, reçoit un rappel avant chaque entretien, et vous devenez son technicien attitré.</p>
+    <div class="ctas">
+      <a class="btn btn-hot" href="app.html#inscription">Commencer gratuitement</a>
+      <a class="btn btn-ghost" href="#app">Essayer la démo →</a>
+    </div>
+    <p class="note" style="color:#86aab2">Gratuit jusqu'à 10 équipements · Paiement Mobile Money · Sans application à installer</p>
+  </div>
+  <div class="tag" aria-label="Exemple d'étiquette FroidPass">
+    <div class="hd"><b>Split 18 000 BTU</b><span class="pill p-warn">Entretien dans 6 j</span></div>
+    <div class="qrbox"><div class="q" id="heroQR"></div>
+      <div><small>Hôtel Les Cocotiers · Chambre 12</small><small>Fluide R410A · Pose 03/2024</small><small style="margin-top:6px;color:var(--teal);font-weight:600">Scannez-moi</small></div></div>
+    <div class="row"><span>Technicien</span><b>K. Adjovi Froid</b></div>
+    <div class="row"><span>Dernier entretien</span><b class="mono">14/09/2026</b></div>
+  </div>
+</div></header>
+
+<section class="s" id="probleme"><div class="wrap">
+  <h2>Le froid ne tombe jamais en panne au bon moment.</h2>
+  <p class="sub">Air salin, humidité, coupures de courant : sur la côte, un équipement non suivi s'use deux fois plus vite. Le client n'y pense qu'au moment de la panne, et il appelle le premier technicien qui répond.</p>
+  <div class="split">
+    <div class="card pain"><h3>Sans FroidPass</h3><ul>
+      <li>Historique dans un cahier, ou nulle part</li>
+      <li>Le client vous oublie entre deux pannes</li>
+      <li>Revenu irrégulier, pas de contrat annuel</li>
+      <li>Devis et rapports refaits à la main sur WhatsApp</li></ul></div>
+    <div class="card gain"><h3>Avec FroidPass</h3><ul>
+      <li>Un carnet QR par équipement, à votre nom</li>
+      <li>Rappel envoyé au client avant chaque échéance</li>
+      <li>Certificat d'entretien PDF pour ses audits et son assurance</li>
+      <li>Des arguments concrets pour vendre un contrat à l'année</li></ul></div>
+  </div>
+</div></section>
+
+<section class="s" style="background:var(--ice)" id="comment"><div class="wrap">
+  <h2>Trois gestes, pas une application de plus.</h2>
+  <div class="grid3">
+    <div class="card"><span class="num">01 — ÉTIQUETER</span><h3>Collez le QR</h3><p>Une étiquette anti-UV sur chaque split, cassette, groupe extérieur ou chambre froide. Le plan d'entretien se calcule selon le type d'équipement et l'environnement (côtier ou intérieur).</p></div>
+    <div class="card"><span class="num">02 — SAISIR</span><h3>Photo et message vocal</h3><p>Prenez la plaque signalétique en photo et dictez vos mesures : « HP 27 bars, BP 9, filtres nettoyés ». La fiche se remplit à votre place.</p></div>
+    <div class="card"><span class="num">03 — FIDÉLISER</span><h3>Le client est relancé</h3><p>Avant chaque échéance, votre client reçoit un message WhatsApp à votre nom. En scannant, il voit l'historique complet. Vous signez le contrat annuel.</p></div>
+  </div>
+</div></section>
+
+<section class="s"><div class="wrap">
+  <h2>Pensé pour ici, pas pour une usine à Chicago.</h2>
+  <table class="cmp">
+    <tr><th></th><th>GMAO internationales</th><th>FroidPass</th></tr>
+    <tr><td>Pour qui</td><td>Responsable maintenance d'une grande entreprise</td><td>Le technicien indépendant et sa petite équipe</td></tr>
+    <tr><td>Saisie</td><td>Application à installer, formulaires longs</td><td>Photo, message vocal, WhatsApp</td></tr>
+    <tr><td>Paiement</td><td>Carte bancaire, en dollars</td><td>MTN MoMo, Moov Money, en FCFA</td></tr>
+    <tr><td>Plans de maintenance</td><td>Génériques</td><td>Adaptés à l'air salin, à l'humidité et aux coupures</td></tr>
+    <tr><td>Ce que voit le client final</td><td>Rien</td><td>Un carnet QR et un certificat à votre nom</td></tr>
+  </table>
+</div></section>
+
+<section class="s dark" id="tarifs"><div class="wrap">
+  <h2>Un seul contrat annuel rembourse des années d'abonnement.</h2>
+  <p class="sub">Prix en FCFA, paiement Mobile Money mensuel ou annuel (10 mois payés pour 12). Membres fondateurs : 3 mois de Solo pour 15 000 FCFA.</p>
+  <div class="price">
+    <div class="plan"><b>Découverte</b><div class="amt">0</div><div class="per">FCFA / mois</div><ul><li>10 équipements</li><li>Carnet QR</li><li>Fiches d'intervention</li></ul><a class="btn btn-ghost" style="color:#eaf7f9;border-color:#2c5a6e" href="#inscription">Commencer</a></div>
+    <div class="plan hot"><b>Solo</b><div class="amt">10 000</div><div class="per">FCFA / mois · 100 000 / an</div><ul><li>60 équipements</li><li>Rappels automatiques aux clients</li><li>Certificat PDF à votre logo</li></ul><a class="btn btn-hot" href="#inscription">Choisir Solo</a></div>
+    <div class="plan"><b>Pro</b><div class="amt">20 000</div><div class="per">FCFA / mois · 200 000 / an</div><ul><li>Équipements illimités</li><li>Devis et factures</li><li>Calcul de charges frigorifiques</li><li>Modèles de contrat annuel</li></ul><a class="btn btn-ghost" style="color:#eaf7f9;border-color:#2c5a6e" href="#inscription">Choisir Pro</a></div>
+    <div class="plan"><b>Équipe</b><div class="amt">40 000</div><div class="per">FCFA / mois · 400 000 / an</div><ul><li>Tout Pro</li><li>5 comptes techniciens</li><li>Tableau de bord du responsable</li></ul><a class="btn btn-ghost" style="color:#eaf7f9;border-color:#2c5a6e" href="#inscription">Choisir Équipe</a></div>
+  </div>
+</div></section>
+
+<section class="s" id="inscription"><div class="wrap">
+  <h2>Devenez membre fondateur.</h2>
+  <p class="sub">3 mois de Solo pour 15 000 FCFA payés d'avance (au lieu de 30 000), puis votre prix reste bloqué à 10 000 FCFA par mois. Accès à l'application le 14 décembre 2026, remboursement intégral sinon. Places limitées aux techniciens de Cotonou, Abomey-Calavi et Porto-Novo.</p>
+  <form class="waitlist" id="wl">
+    <input class="field" name="nom" placeholder="Nom ou entreprise" required>
+    <input class="field" name="tel" placeholder="Numéro WhatsApp" required>
+    <select class="field" name="ville"><option>Cotonou</option><option>Abomey-Calavi</option><option>Porto-Novo</option><option>Autre ville</option></select>
+    <button class="btn btn-hot" type="submit">Réserver ma place</button>
+  </form>
+  <div id="wlok" class="note"></div>
+</div></section>
+
+<footer><div class="wrap">FroidPass · Cotonou, Bénin · WhatsApp : <a href="https://wa.me/2290162777977" target="_blank" rel="noopener">+229 01 62 77 79 77</a></div></footer>
+<a href="https://wa.me/2290162777977?text=Bonjour%20FroidPass%2C%20je%20souhaite%20en%20savoir%20plus." target="_blank" rel="noopener" aria-label="Écrire à FroidPass sur WhatsApp" style="position:fixed;right:18px;bottom:18px;z-index:30;width:56px;height:56px;border-radius:50%;background:#25D366;display:grid;place-items:center;box-shadow:0 10px 24px rgba(0,0,0,.25)"><svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5 0-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.3 0 .5l-.4.6-.3.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg></a>
+</div>
+
+<!-- ================= APP TECHNICIEN ================= -->
+<div id="v-app" class="view"><div class="wrap app">
+  <div class="apphead">
+    <div><span class="demo-flag">DÉMO · données fictives · enregistrées dans votre navigateur</span><h1 style="margin-top:8px">Bonjour, <span id="techName">K. Adjovi Froid</span></h1></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-teal btn-sm" onclick="openAdd()">+ Équipement</button><button class="btn btn-ghost btn-sm" onclick="resetDemo()">Réinitialiser la démo</button></div>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div id="appBody"></div>
+</div></div>
+
+<!-- ================= CARNET PUBLIC ================= -->
+<div id="v-carnet" class="view"><div class="wrap" id="carnetBody"></div></div>
+
+<!-- ================= CERTIFICAT ================= -->
+<div id="v-cert" class="view"><div class="wrap" id="certBody"></div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const FP_WA = "2290162777977";
+/* ---------- Règles métier (fréquences en jours) ---------- */
+const TYPES = {
+  split:   {label:"Split mural / console", ic:"❄️", cot:60, int:90, pts:"Filtres, évaporateur, évacuation des condensats, HP/BP, intensité"},
+  cassette:{label:"Cassette / gainable",   ic:"🌀", cot:60, int:90, pts:"Bac et pompe de relevage, filtres, équilibrage"},
+  groupe:  {label:"Groupe extérieur",      ic:"🔆", cot:60, int:90, pts:"Corrosion ailettes condenseur, serrage bornes, condensateur"},
+  chambre: {label:"Chambre froide",        ic:"🧊", cot:30, int:30, pts:"Joints de porte, dégivrage, consigne, alarme"},
+  vitrine: {label:"Armoire / vitrine réfrigérée", ic:"🥶", cot:60, int:90, pts:"Condenseur, joints, thermostat"}
+};
+const DAY = 864e5;
+const _n = new Date();
+const today = new Date(Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate()));
+const iso = d => new Date(d).toISOString().slice(0,10);
+const fr = s => s ? s.split("-").reverse().join("/") : "—";
+const ago = n => iso(today.getTime() - n*DAY);
+
+function seed(){
+  return {
+    tech:{nom:"K. Adjovi Froid", tel:"+229 01 00 00 00 00"},
+    clients:[
+      {id:"c1", nom:"Hôtel Les Cocotiers", contact:"M. Houngbo (gérant)", tel:"+229 01 11 11 11 11"},
+      {id:"c2", nom:"Clinique Sainte-Grâce", contact:"Mme Dossou", tel:"+229 01 22 22 22 22"},
+      {id:"c3", nom:"Restaurant Le Calao", contact:"M. Agossou", tel:"+229 01 33 33 33 33"}
+    ],
+    eqs:[
+      {id:"eq1", client:"c1", lieu:"Chambre 12", type:"split", marque:"Gree", puiss:"18 000 BTU", fluide:"R410A", env:"cot", pose:"2024-03-10"},
+      {id:"eq2", client:"c1", lieu:"Restaurant – groupe toiture", type:"groupe", marque:"Daikin", puiss:"24 000 BTU", fluide:"R32", env:"cot", pose:"2023-11-02"},
+      {id:"eq3", client:"c2", lieu:"Pharmacie – chambre froide +4 °C", type:"chambre", marque:"Tecumseh", puiss:"1,5 CV", fluide:"R404A", env:"int", pose:"2022-06-20"},
+      {id:"eq4", client:"c2", lieu:"Bloc opératoire", type:"cassette", marque:"LG", puiss:"36 000 BTU", fluide:"R410A", env:"int", pose:"2023-01-15"},
+      {id:"eq5", client:"c3", lieu:"Cuisine – vitrine boissons", type:"vitrine", marque:"Liebherr", puiss:"—", fluide:"R290", env:"cot", pose:"2025-02-01"}
+    ],
+    ints:[
+      {id:"i1", eq:"eq1", date:ago(54), type:"Préventif", hp:"27", bp:"8.6", i:"6.1", ts:"13", tr:"25", obs:"Filtres nettoyés, évaporateur rincé, condensats OK."},
+      {id:"i2", eq:"eq1", date:ago(170), type:"Curatif", hp:"", bp:"", i:"", ts:"", tr:"", obs:"Remplacement condensateur de démarrage 35 µF."},
+      {id:"i3", eq:"eq2", date:ago(75), type:"Préventif", hp:"28", bp:"9", i:"8.4", ts:"", tr:"", obs:"Début de corrosion sur ailettes côté mer. Traitement anticorrosion à prévoir."},
+      {id:"i4", eq:"eq3", date:ago(41), type:"Préventif", hp:"", bp:"", i:"4.2", ts:"", tr:"", obs:"Joint de porte fatigué, température stable à +4 °C."},
+      {id:"i5", eq:"eq4", date:ago(20), type:"Préventif", hp:"26", bp:"8.2", i:"11", ts:"14", tr:"24", obs:"Pompe de relevage nettoyée."},
+      {id:"i6", eq:"eq5", date:ago(10), type:"Préventif", hp:"", bp:"", i:"", ts:"", tr:"", obs:"Condenseur dépoussiéré."}
+    ]
+  };
+}
+let S;
+function load(){ try{ const r = localStorage.getItem("froidpass-demo"); S = r ? JSON.parse(r) : seed(); }catch(e){ S = seed(); } }
+function save(){ try{ localStorage.setItem("froidpass-demo", JSON.stringify(S)); }catch(e){} }
+load();
+
+const client = id => S.clients.find(c => c.id === id);
+const eqById = id => S.eqs.find(e => e.id === id);
+const intsOf = id => S.ints.filter(x => x.eq === id).sort((a,b) => b.date.localeCompare(a.date));
+function freq(e){ return TYPES[e.type][e.env === "cot" ? "cot" : "int"]; }
+function nextDue(e){
+  const last = intsOf(e.id).find(x => x.type === "Préventif");
+  const base = last ? Date.parse(last.date) : Date.parse(e.pose);
+  return iso(base + freq(e)*DAY);
+}
+function status(e){
+  const d = Math.round((Date.parse(nextDue(e)) - today.getTime())/DAY);
+  if(d < 0) return {cls:"p-bad", txt:`En retard de ${-d} j`, d};
+  if(d <= 14) return {cls:"p-warn", txt:`Dû dans ${d} j`, d};
+  return {cls:"p-ok", txt:`À jour · ${d} j`, d};
+}
+/* Indications techniques — à confirmer sur le terrain, jamais un diagnostic */
+function flags(x){
+  const out = [];
+  const ts = parseFloat(x.ts), tr = parseFloat(x.tr);
+  if(!isNaN(ts) && !isNaN(tr)){
+    const dt = tr - ts;
+    if(dt < 8) out.push(`Écart reprise/soufflage de ${dt.toFixed(1)} °C, plutôt faible pour un climatiseur en froid : vérifier l'encrassement de l'évaporateur et la charge en fluide (mesure de surchauffe).`);
+  }
+  if(/corros/i.test(x.obs||"")) out.push("Corrosion signalée en environnement côtier : prévoir un traitement anticorrosion et rapprocher le contrôle.");
+  return out;
+}
+
+/* ---------- Navigation par hash ---------- */
+const ROUTES = ["accueil","probleme","comment","tarifs","inscription"];
+function route(){
+  const h = (location.hash || "#accueil").slice(1);
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("on"));
+  document.querySelectorAll("[data-nav]").forEach(a => a.classList.toggle("cur", a.dataset.nav === h || (h.startsWith("eq-") && a.dataset.nav==="app")));
+  if(h === "app" || h.startsWith("eq-")){ show("v-app"); renderApp(h.startsWith("eq-") ? h.slice(3) : null); window.scrollTo(0,0); return; }
+  if(h.startsWith("carnet-")){ show("v-carnet"); renderCarnet(h.slice(7)); window.scrollTo(0,0); return; }
+  if(h.startsWith("cert-")){ show("v-cert"); renderCert(h.slice(5)); window.scrollTo(0,0); return; }
+  show("v-landing");
+  if(ROUTES.includes(h) && h !== "accueil"){ const el = document.getElementById(h); if(el) setTimeout(()=>el.scrollIntoView(),0); }
+  else window.scrollTo(0,0);
+}
+function show(id){ document.getElementById(id).classList.add("on"); }
+window.addEventListener("hashchange", route);
+
+/* ---------- QR ---------- */
+function carnetUrl(id){ return location.href.split("#")[0] + "#carnet-" + id; }
+function makeQR(el, text, size){
+  el.innerHTML = "";
+  if(window.QRCode){ new QRCode(el, {text, width:size, height:size, colorDark:"#0b2230", colorLight:"#ffffff", correctLevel:QRCode.CorrectLevel.M}); }
+  else el.innerHTML = '<span class="mono" style="font-size:11px">QR</span>';
+}
+
+/* ---------- App ---------- */
+let tab = "parc";
+function renderApp(eqId){
+  document.getElementById("techName").textContent = S.tech.nom;
+  const sts = S.eqs.map(status);
+  const late = sts.filter(s => s.d < 0).length, soon = sts.filter(s => s.d >= 0 && s.d <= 14).length;
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi"><b>${S.clients.length}</b><span>clients</span></div>
+    <div class="kpi"><b>${S.eqs.length}</b><span>équipements étiquetés</span></div>
+    <div class="kpi alert"><b>${late}</b><span>entretiens en retard</span></div>
+    <div class="kpi"><b>${soon}</b><span>à faire sous 14 jours</span></div>`;
+  const body = document.getElementById("appBody");
+  if(eqId && eqById(eqId)){ body.innerHTML = eqDetail(eqById(eqId)); const q = document.getElementById("eqQR"); if(q) makeQR(q, carnetUrl(eqId), 132); return; }
+  const sorted = [...S.eqs].sort((a,b) => status(a).d - status(b).d);
+  const relances = sorted.filter(e => status(e).d <= 14);
+  body.innerHTML = `
+  <div class="layout">
+    <div class="panel">
+      <div class="tabs">
+        <button class="${tab==='parc'?'on':''}" onclick="tab='parc';renderApp()">Mon parc</button>
+        <button class="${tab==='clients'?'on':''}" onclick="tab='clients';renderApp()">Par client</button>
+      </div>
+      ${tab==='parc' ? sorted.map(eqRow).join("") :
+        S.clients.map(c => `<h3 style="margin-top:14px;font-size:17px">${esc(c.nom)} <span class="m" style="font-weight:400;color:var(--mute);font-size:13px">· ${esc(c.contact)}</span></h3>` + S.eqs.filter(e=>e.client===c.id).map(eqRow).join("")).join("")}
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:18px">
+        <h3>Relances à envoyer</h3>
+        ${relances.length ? relances.map(e => `
+          <div style="padding:10px 0;border-top:1px solid var(--line)">
+            <div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:14.5px">${esc(client(e.client).nom)}</b><span class="pill ${status(e).cls}">${status(e).txt}</span></div>
+            <div class="m" style="font-size:13.5px;color:var(--ink2)">${esc(e.lieu)}</div>
+            <button class="btn btn-teal btn-sm" style="margin-top:8px" onclick="relance('${e.id}')">Préparer le message WhatsApp</button>
+          </div>`).join("") : '<p class="m">Aucune relance cette quinzaine.</p>'}
+      </div>
+      <div class="panel" style="background:var(--ink);color:#eaf7f9;border:0">
+        <h3>Argument contrat annuel</h3>
+        <p style="color:#a9c9d0;font-size:14.5px">Votre parc compte <b style="color:#fff">${S.eqs.length} équipements</b>, soit <b style="color:#fff">${S.eqs.reduce((n,e)=>n+Math.round(365/freq(e)),0)} visites préventives</b> par an selon les fréquences du plan. C'est la base chiffrée de votre proposition de contrat.</p>
+      </div>
+    </div>
+  </div>
+  <div id="modal"></div>`;
+}
+function eqRow(e){
+  const s = status(e), t = TYPES[e.type], c = client(e.client);
+  return `<div class="eq" onclick="location.hash='eq-${e.id}'">
+    <div class="ic">${t.ic}</div>
+    <div><div class="t">${esc(e.lieu)}</div><div class="m">${esc(c.nom)} · ${t.label} · ${esc(e.marque)} ${esc(e.puiss)}</div></div>
+    <span class="pill ${s.cls}">${s.txt}</span></div>`;
+}
+function eqDetail(e){
+  const s = status(e), t = TYPES[e.type], c = client(e.client), list = intsOf(e.id);
+  return `<a class="back" href="#app">← Retour au parc</a>
+  <div class="layout">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><h3 style="font-size:24px">${t.ic} ${esc(e.lieu)}</h3><span class="pill ${s.cls}">${s.txt}</span></div>
+      <p class="m" style="color:var(--ink2)">${esc(c.nom)} · ${t.label} · ${esc(e.marque)} ${esc(e.puiss)} · <span class="mono">${esc(e.fluide)}</span> · ${e.env==='cot'?'environnement côtier':'intérieur protégé'}</p>
+      <p style="margin:10px 0 18px;font-size:14px">Fréquence préventive : <b>tous les ${freq(e)} jours</b> · Prochain entretien : <b class="mono">${fr(nextDue(e))}</b><br><span style="color:var(--ink2)">Points de contrôle : ${t.pts}</span></p>
+      <h3>Nouvelle intervention</h3>
+      <div class="ai">
+        <b style="font-size:14.5px">Saisie rapide (démo de la saisie vocale)</b>
+        <p class="m" style="font-size:13.5px;color:var(--ink2);margin:4px 0 8px">Tapez comme vous parleriez. La démo reconnaît HP, BP, intensité et températures ; la version finale transcrira vos messages vocaux WhatsApp.</p>
+        <textarea class="field" id="dict" rows="2">Préventif, filtres nettoyés, HP 27 bars, BP 8,5, intensité 6,3 A, soufflage 19 degrés, reprise 25</textarea>
+        <button class="btn btn-teal btn-sm" style="margin-top:8px" onclick="parseDict()">Remplir la fiche</button>
+      </div>
+      <form class="form" id="intForm" onsubmit="addInt(event,'${e.id}')">
+        <label>Date<input class="field" type="date" name="date" value="${iso(today)}" required></label>
+        <label>Type<select class="field" name="type"><option>Préventif</option><option>Curatif</option></select></label>
+        <label>HP (bar)<input class="field mono" name="hp" inputmode="decimal"></label>
+        <label>BP (bar)<input class="field mono" name="bp" inputmode="decimal"></label>
+        <label>Intensité absorbée (A)<input class="field mono" name="i" inputmode="decimal"></label>
+        <label>T soufflage (°C)<input class="field mono" name="ts" inputmode="decimal"></label>
+        <label>T reprise (°C)<input class="field mono" name="tr" inputmode="decimal"></label>
+        <label class="full">Observations<textarea class="field" name="obs" rows="2"></textarea></label>
+        <div class="full"><button class="btn btn-hot" type="submit">Enregistrer l'intervention</button></div>
+      </form>
+    </div>
+    <div>
+      <div class="panel" style="margin-bottom:18px">
+        <h3>Étiquette QR</h3>
+        <div class="qrwrap"><div class="qr" id="eqQR"></div>
+          <div style="font-size:14px"><p>Ce code ouvre le carnet public de l'équipement.</p>
+          <a class="btn btn-ghost btn-sm" style="margin-top:8px" href="#carnet-${e.id}">Voir ce que voit le client</a><br>
+          <a class="btn btn-ghost btn-sm" style="margin-top:8px" href="#cert-${e.id}">Certificat d'entretien</a></div></div>
+        <button class="btn btn-teal btn-sm" style="margin-top:14px" onclick="relance('${e.id}')">Préparer la relance WhatsApp</button>
+      </div>
+      <div class="panel"><h3>Historique</h3>
+        <div class="hist">${list.length ? list.map((x,k) => `
+          <div class="it ${k===0?'cur':''}"><b class="mono" style="font-size:13.5px">${fr(x.date)}</b> · <b>${x.type}</b>
+            <div style="font-size:14.5px;color:var(--ink2)">${esc(x.obs||"")}</div>
+            ${measHTML(x)}
+            ${flags(x).map(f=>`<div class="flag">⚠ ${f}</div>`).join("")}
+          </div>`).join("") : '<p class="m">Aucune intervention.</p>'}</div>
+      </div>
+    </div>
+  </div><div id="modal"></div>`;
+}
+function measHTML(x){
+  const m = [];
+  if(x.hp) m.push(`HP ${x.hp} bar`); if(x.bp) m.push(`BP ${x.bp} bar`); if(x.i) m.push(`I ${x.i} A`);
+  if(x.ts) m.push(`Souffl. ${x.ts} °C`); if(x.tr) m.push(`Rep. ${x.tr} °C`);
+  return m.length ? `<div class="meas">${m.map(v=>`<span>${v}</span>`).join("")}</div>` : "";
+}
+function parseDict(){
+  const t = document.getElementById("dict").value.replace(/,(\d)/g,".$1");
+  const f = document.getElementById("intForm");
+  const grab = re => { const m = t.match(re); return m ? m[1] : ""; };
+  f.hp.value = grab(/\bHP\s*[:=]?\s*(\d+(?:\.\d+)?)/i);
+  f.bp.value = grab(/\bBP\s*[:=]?\s*(\d+(?:\.\d+)?)/i);
+  f.i.value  = grab(/intensit[ée]\s*[:=]?\s*(\d+(?:\.\d+)?)/i) || grab(/(\d+(?:\.\d+)?)\s*A\b/);
+  f.ts.value = grab(/souffl\w*\s*[:=]?\s*(\d+(?:\.\d+)?)/i);
+  f.tr.value = grab(/reprise\s*[:=]?\s*(\d+(?:\.\d+)?)/i);
+  f.type.value = /curatif|panne|d[ée]pannage/i.test(t) ? "Curatif" : "Préventif";
+  const obs = t.split(/[,;]|\.(?!\d)/).map(s=>s.trim()).filter(s => s && !/\b(HP|BP)\b|intensit|souffl|reprise|^pr[ée]ventif$|^curatif$/i.test(s));
+  f.obs.value = obs.map(s => s.charAt(0).toUpperCase()+s.slice(1)).join(". ") + (obs.length ? "." : "");
+  toast("Fiche remplie : vérifiez avant d'enregistrer");
+}
+function addInt(ev, eqId){
+  ev.preventDefault();
+  const f = new FormData(ev.target), o = Object.fromEntries(f.entries());
+  S.ints.push({id:"i"+Date.now(), eq:eqId, ...o});
+  save(); renderApp(eqId); const q = document.getElementById("eqQR"); if(q) makeQR(q, carnetUrl(eqId), 132);
+  toast("Intervention enregistrée · prochain entretien recalculé");
+}
+function relance(eqId){
+  const e = eqById(eqId), c = client(e.client), s = status(e);
+  const msg = `Bonjour ${c.contact.split(" (")[0]},\n\nC'est ${S.tech.nom}. L'entretien préventif de votre équipement « ${e.lieu} » ${s.d < 0 ? "est en retard depuis le " + fr(nextDue(e)) : "est prévu le " + fr(nextDue(e))}.\n\nUn entretien régulier évite les pannes et protège votre compresseur, surtout avec l'air salin. Quel créneau vous convient cette semaine ?\n\nVotre carnet d'entretien : ${carnetUrl(e.id)}`;
+  const num = c.tel.replace(/\D/g,"");
+  document.getElementById("modal").innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(11,34,48,.55);z-index:50;display:grid;place-items:center;padding:18px" onclick="if(event.target===this)this.parentNode.innerHTML=''">
+      <div class="panel" style="max-width:520px;width:100%">
+        <h3>Message pour ${esc(c.nom)}</h3>
+        <p class="m" style="font-size:13.5px;color:var(--ink2)">Destinataire : ${esc(c.tel)} (numéro fictif de démonstration)</p>
+        <div class="msgbox" id="msgTxt">${esc(msg)}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-teal btn-sm" onclick="copyMsg()">Copier le message</button>
+          <a class="btn btn-ghost btn-sm" href="https://wa.me/${num}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Ouvrir dans WhatsApp</a>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('modal').innerHTML=''">Fermer</button>
+        </div>
+      </div></div>`;
+}
+async function copyMsg(){ try{ await navigator.clipboard.writeText(document.getElementById("msgTxt").textContent); toast("Message copié"); }catch(e){ toast("Copie refusée : sélectionnez le texte"); } }
+
+function openAdd(){
+  if(!document.getElementById("modal")){ location.hash = "app"; setTimeout(openAdd, 50); return; }
+  document.getElementById("modal").innerHTML = `
+  <div style="position:fixed;inset:0;background:rgba(11,34,48,.55);z-index:50;display:grid;place-items:center;padding:18px;overflow:auto" onclick="if(event.target===this)this.parentNode.innerHTML=''">
+    <div class="panel" style="max-width:600px;width:100%">
+      <h3>Nouvel équipement</h3>
+      <form class="form" onsubmit="addEq(event)">
+        <label class="full">Client<select class="field" name="client">${S.clients.map(c=>`<option value="${c.id}">${esc(c.nom)}</option>`).join("")}<option value="new">+ Nouveau client…</option></select></label>
+        <label class="full">Nouveau client (si besoin)<input class="field" name="newc" placeholder="Ex. Supermarché Erevan – M. Kpodo"></label>
+        <label class="full">Emplacement<input class="field" name="lieu" placeholder="Ex. Salle serveur, Chambre 7" required></label>
+        <label>Type<select class="field" name="type">${Object.entries(TYPES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join("")}</select></label>
+        <label>Environnement<select class="field" name="env"><option value="cot">Côtier / exposé</option><option value="int">Intérieur protégé</option></select></label>
+        <label>Marque<input class="field" name="marque"></label>
+        <label>Puissance<input class="field" name="puiss" placeholder="12 000 BTU, 3,5 kW…"></label>
+        <label>Fluide frigorigène<select class="field" name="fluide"><option>R410A</option><option>R32</option><option>R22</option><option>R404A</option><option>R134a</option><option>R290</option><option>Autre</option></select></label>
+        <label>Date de pose<input class="field" type="date" name="pose" value="${iso(today)}"></label>
+        <div class="full" style="display:flex;gap:8px"><button class="btn btn-hot" type="submit">Créer et générer le QR</button><button class="btn btn-ghost" type="button" onclick="document.getElementById('modal').innerHTML=''">Annuler</button></div>
+      </form></div></div>`;
+}
+function addEq(ev){
+  ev.preventDefault();
+  const o = Object.fromEntries(new FormData(ev.target).entries());
+  if(o.client === "new"){
+    const nm = (o.newc||"Nouveau client").trim(); const id = "c"+Date.now();
+    S.clients.push({id, nom:nm.split(" – ")[0], contact:nm.split(" – ")[1]||"Contact", tel:"+229 01 00 00 00 00"}); o.client = id;
+  }
+  const id = "eq"+Date.now();
+  S.eqs.push({id, client:o.client, lieu:o.lieu, type:o.type, marque:o.marque||"—", puiss:o.puiss||"—", fluide:o.fluide, env:o.env, pose:o.pose});
+  save(); location.hash = "eq-"+id; toast("Équipement créé · QR prêt à imprimer");
+}
+function resetDemo(){ S = seed(); save(); tab="parc"; location.hash="app"; renderApp(); toast("Démo réinitialisée"); }
+
+/* ---------- Carnet public ---------- */
+function renderCarnet(id){
+  const e = eqById(id), el = document.getElementById("carnetBody");
+  if(!e){ el.innerHTML = '<p style="padding:40px">Équipement introuvable.</p>'; return; }
+  const s = status(e), t = TYPES[e.type], c = client(e.client), list = intsOf(e.id);
+  el.innerHTML = `<a class="back" href="#eq-${e.id}" style="margin-top:20px">← Retour à l'espace technicien</a>
+  <div class="phone">
+    <div class="ph"><div style="font-size:13px;opacity:.7">Carnet de santé · ${esc(c.nom)}</div>
+      <div class="disp" style="font-size:26px;font-weight:800;margin:4px 0 10px">${t.ic} ${esc(e.lieu)}</div>
+      <span class="pill ${s.cls}" style="background:#fff">${s.txt}</span></div>
+    <div class="pb">
+      <p style="font-size:14px;color:var(--ink2)">${t.label} · ${esc(e.marque)} ${esc(e.puiss)} · ${esc(e.fluide)}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0">
+        <div class="kpi" style="padding:12px"><span>Dernier entretien</span><b class="mono" style="font-size:18px">${fr((list.find(x=>x.type==='Préventif')||{}).date)}</b></div>
+        <div class="kpi" style="padding:12px"><span>Prochain entretien</span><b class="mono" style="font-size:18px">${fr(nextDue(e))}</b></div>
+      </div>
+      <h3 style="font-size:17px;margin:6px 0 10px">Historique</h3>
+      <div class="hist">${list.map(x => `<div class="it"><b class="mono" style="font-size:13px">${fr(x.date)}</b> · ${x.type}<div style="font-size:14px;color:var(--ink2)">${esc(x.obs||"")}</div></div>`).join("")}</div>
+      <div style="border-top:1px solid var(--line);padding-top:14px;margin-top:6px">
+        <div style="font-size:13px;color:var(--mute)">Votre technicien</div>
+        <b>${esc(S.tech.nom)}</b><div class="mono" style="font-size:14px">${esc(S.tech.tel)}</div>
+        <a class="btn btn-hot btn-sm" style="margin-top:10px" href="#cert-${e.id}">Voir le certificat d'entretien</a>
+      </div>
+      <p class="note" style="text-align:center;margin-top:18px">Propulsé par FroidPass</p>
+    </div></div>`;
+}
+
+/* ---------- Certificat ---------- */
+function renderCert(id){
+  const e = eqById(id), el = document.getElementById("certBody");
+  if(!e){ el.innerHTML = '<p style="padding:40px">Équipement introuvable.</p>'; return; }
+  const t = TYPES[e.type], c = client(e.client), list = intsOf(e.id);
+  el.innerHTML = `<a class="back" href="#eq-${e.id}" style="margin-top:20px">← Retour</a>
+  <div class="cert">
+    <div class="ch"><div><div class="disp" style="font-size:28px;font-weight:800">Certificat d'entretien</div>
+      <div style="color:var(--ink2);font-size:14px">N° FP-${e.id.toUpperCase()}-${iso(today).replace(/-/g,"")}</div></div>
+      <div style="text-align:right;font-size:14px"><b>${esc(S.tech.nom)}</b><br><span class="mono">${esc(S.tech.tel)}</span></div></div>
+    <table><tr><th>Client</th><td>${esc(c.nom)}</td><th>Emplacement</th><td>${esc(e.lieu)}</td></tr>
+      <tr><th>Équipement</th><td>${t.label}</td><th>Marque / puissance</th><td>${esc(e.marque)} · ${esc(e.puiss)}</td></tr>
+      <tr><th>Fluide</th><td>${esc(e.fluide)}</td><th>Date de pose</th><td>${fr(e.pose)}</td></tr>
+      <tr><th>Fréquence préventive</th><td>${freq(e)} jours</td><th>Prochaine échéance</th><td>${fr(nextDue(e))}</td></tr></table>
+    <h3 style="margin-top:26px;font-size:18px">Historique des interventions</h3>
+    <table><tr><th>Date</th><th>Type</th><th>Mesures</th><th>Observations</th></tr>
+      ${list.map(x=>`<tr><td class="mono">${fr(x.date)}</td><td>${x.type}</td><td class="mono" style="font-size:12.5px">${[x.hp&&"HP "+x.hp,x.bp&&"BP "+x.bp,x.i&&"I "+x.i+" A",x.ts&&"Ts "+x.ts+" °C",x.tr&&"Tr "+x.tr+" °C"].filter(Boolean).join(" · ")||"—"}</td><td>${esc(x.obs||"")}</td></tr>`).join("")}</table>
+    <div class="sig"><div>Le technicien<br><b style="color:var(--ink)">${esc(S.tech.nom)}</b></div><div>Le client<br><b style="color:var(--ink)">${esc(c.contact)}</b></div></div>
+    <p class="note" style="margin-top:24px">Document généré par FroidPass. La version finale produira ce certificat en PDF signé.</p>
+  </div>`;
+}
+
+/* ---------- Divers ---------- */
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+let tt; function toast(m){ const t = document.getElementById("toast"); t.textContent = m; t.classList.add("on"); clearTimeout(tt); tt = setTimeout(()=>t.classList.remove("on"), 2600); }
+document.getElementById("wl").addEventListener("submit", ev => {
+  ev.preventDefault();
+  const o = Object.fromEntries(new FormData(ev.target).entries());
+  try{ const l = JSON.parse(localStorage.getItem("froidpass-wl")||"[]"); l.push({...o, date:iso(today)}); localStorage.setItem("froidpass-wl", JSON.stringify(l)); }catch(e){}
+  const txt = `Bonjour FroidPass, je veux devenir membre fondateur (3 mois de Solo pour 15 000 FCFA).\nNom : ${o.nom}\nWhatsApp : ${o.tel}\nVille : ${o.ville}`;
+  document.getElementById("wlok").innerHTML = `Merci ${esc(o.nom)}. Dernière étape : envoyez votre demande sur WhatsApp, vous recevrez le lien de paiement Mobile Money.<br><a class="btn btn-hot" style="margin-top:10px" href="https://wa.me/${FP_WA}?text=${encodeURIComponent(txt)}" target="_blank" rel="noopener">Envoyer sur WhatsApp</a><br><span>Ou écrivez directement au +229 01 62 77 79 77.</span>`;
+  ev.target.reset();
+});
+window.addEventListener("load", () => { makeQR(document.getElementById("heroQR"), carnetUrl("eq1"), 96); route(); });
+route();
+</script>
+</body>
+</html>
